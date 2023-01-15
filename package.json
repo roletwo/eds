@@ -3,13 +3,13 @@
   "version": "0.0.1",
   "description": "Exponential Distribute Share",
   "homepage": "https://github.com/role2/eds#readme",
-  "repository": "github:xxx/xxx",
+  "repository": "github:role2/eds",
   "license": "ISC",
   "author": "Role2",
   "type": "build/index.d.ts",
   "main": "build/index.js",
   "bin": {
-    "chain": "src/cli/cli.js"
+    "eds": "src/cli/cli.js"
   },
   "files": [
     "build/"
@@ -25,7 +25,6 @@
   "dependencies": {
     "@mosteast/common_eid": "^0.2.0",
     "@mosteast/e": "^0.2.2",
-    "chalk": "^5.2.0",
     "cli-table": "^0.3.11",
     "decimal.js": "^10.4.3"
   },
