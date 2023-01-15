@@ -1,13 +1,16 @@
 {
-  "name": "@mosteast/xxx",
+  "name": "@role2/eds",
   "version": "0.0.1",
-  "description": "xxx",
-  "homepage": "https://github.com/xxx/xxx#readme",
+  "description": "Exponential Distribute Share",
+  "homepage": "https://github.com/role2/eds#readme",
   "repository": "github:xxx/xxx",
   "license": "ISC",
-  "author": "Mosteast team",
+  "author": "Role2",
   "type": "build/index.d.ts",
   "main": "build/index.js",
+  "bin": {
+    "chain": "src/cli/cli.js"
+  },
   "files": [
     "build/"
   ],
@@ -21,9 +24,13 @@
   },
   "dependencies": {
     "@mosteast/common_eid": "^0.2.0",
-    "@mosteast/e": "^0.2.2"
+    "@mosteast/e": "^0.2.2",
+    "chalk": "^5.2.0",
+    "cli-table": "^0.3.11",
+    "decimal.js": "^10.4.3"
   },
   "devDependencies": {
+    "@types/cli-table": "^0.3.1",
     "@types/fs-extra": "^11.0.1",
     "@types/jest": "^29.2.5",
     "@types/lodash": "^4.14.191",
