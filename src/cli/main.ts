@@ -1,6 +1,7 @@
 import Table from 'cli-table';
 import yargs, { Argv } from 'yargs';
-import { cut, calc_min, n } from '../lib/eds/eds';
+import { cut, calc_min } from '../lib/eds/eds';
+import { n } from '../lib/utility/math';
 
 export const cli = yargs
   .command({

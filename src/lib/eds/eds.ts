@@ -5,7 +5,9 @@
  */
 
 import { Decimal } from 'decimal.js';
+import { uniq } from 'lodash';
 import { Invalid_argument_external } from '../../error/invalid_argument';
+import { n } from '../utility/math';
 
 /**
  * Calculate minimal member share
@@ -59,6 +61,7 @@ export function cut({ share, member, ratio, round_fn, dp }: I_cut): Decimal[] {
 export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: I_cut): Decimal[] {
   base_vote = base_vote || 1;
   base_share = base_share || 0;
+  const { dp } = opt_list;
 
   if (poll.length < 3) {
     throw new Invalid_argument_external('Poll members number should be greater than 2');
@@ -90,12 +93,31 @@ export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: 
   const list_base = Array(base_count).fill(base_share);
 
   // The equity of members with the same number of votes should be equally distributed
+  const uniq_vote = uniq(sharable);
+  const uniq_map: Record<number /* votes */, { repeat: number; sum: Decimal; avg: Decimal }> = {};
+  uniq_vote.forEach((it, i) => (uniq_map[it] = { repeat: 0, sum: n(0), avg: n(0) }));
+
+  sharable.forEach((it, i) => {
+    uniq_map[it].sum = uniq_map[it].sum.add(list[i]);
+    if (it === sharable[i - 1]) {
+      uniq_map[it].repeat++;
+    }
+  });
+
+  for (const key in uniq_map) {
+    const item = uniq_map[key];
+    if (item.repeat) {
+      item.avg = item.sum.div(item.repeat + 1);
+    }
+  }
+
+  sharable.forEach((it, i) => {
+    if (uniq_map[it].repeat) {
+      list[i] = uniq_map[it].avg.toDP(dp);
+    }
+  });
 
   return [...list, ...list_base];
-}
-
-export function n(value?: Decimal.Value): Decimal {
-  return new Decimal(value || 0);
 }
 
 export interface I_poll_cut {
