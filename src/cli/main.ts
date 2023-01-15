@@ -80,7 +80,7 @@ export const cli = yargs
           console.info(table_list.toString());
         }
       } else {
-        console.info(JSON.stringify({ list, sum, crumb }, null, 2));
+        console.info(JSON.stringify({ list, verbose: { sum, crumb } }, null, 2));
       }
     },
   })
@@ -139,7 +139,7 @@ export const cli = yargs
           console.info(table_list.toString());
         }
       } else {
-        console.info(JSON.stringify({ list, sum, crumb }, null, 2));
+        console.info(JSON.stringify({ list, verbose: { sum, crumb } }, null, 2));
       }
     },
   })
@@ -172,4 +172,18 @@ export const cli = yargs
       console.info(r);
     },
   })
+  .example(`Cut 10000 shares into 10 peaces with ratio of 1.1`, `eds cut 10000 10 1.1`)
+  .example(`Cut 10000 shares into 10 peaces with ratio of 1.1 (pretty print)`, `eds cut --pretty 10000 10 1.1`)
+  .example(
+    `Calc 10 member shares from their votes`,
+    `eds poll_cut 10000 10 1.1 --poll 10 9 8 7 6 5 4 3 2 1 --base_vote 6 --base_share 10`,
+  )
+  .example(
+    `Calc 10 member shares from their votes (pretty print)`,
+    `eds poll_cut 10000 10 1.1 --pretty --poll 10 9 8 7 6 5 4 3 2 1 --base_vote 6 --base_share 10`,
+  )
+  .example(
+    `Calc 10 member shares from their votes (with same votes exists)`,
+    `eds poll_cut 10000 10 1.1 --poll 10 10 8 8 6 5 4 3 2 1 --base_vote 6 --base_share 10`,
+  )
   .demandCommand();

@@ -17,11 +17,31 @@ export const min_share = 1;
  * Calculate minimal member share
  */
 export function calc_min({ share, member, ratio, dp }: I_calc_min): Decimal {
+  if (share <= 0) {
+    throw new Invalid_argument_external({ share });
+  }
+
+  if (member < 1) {
+    throw new Invalid_argument_external({ member });
+  }
+
+  if (ratio <= 1) {
+    throw new Invalid_argument_external({ ratio });
+  }
+
+  if (dp && dp > max_dp) {
+    throw new Invalid_argument_external({ dp });
+  }
+
+  if (member === 1) {
+    return n(share);
+  }
+
   const n_share = n(share);
   const n_ratio = n(ratio);
   const r = n_share.div(n(1).minus(n_ratio.pow(member)).div(n(1).minus(ratio)));
 
-  return to_dp(r);
+  return to_dp(r, dp);
 }
 
 /**
@@ -132,7 +152,7 @@ export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: 
 
   sharable.forEach((it, i) => {
     if (uniq_map[it].repeat) {
-      list[i] = to_dp(uniq_map[it].avg);
+      list[i] = to_dp(uniq_map[it].avg, dp);
     }
   });
 
