@@ -5,33 +5,7 @@
  */
 
 import { Decimal } from 'decimal.js';
-
-export interface I_calc_min {
-  /**
-   * Total shares
-   */
-  share: number;
-  /**
-   * Total members to split shares
-   */
-  member: number;
-  /**
-   * How many times a member's share is greater than next member's
-   */
-  ratio: number;
-
-  /**
-   * Round function, default to: `Math.floor` pass `false` to prevent round
-   */
-  round_fn?: false | ((x: Decimal) => Decimal);
-
-  /**
-   * Decimal places to keep in no-rounding mode
-   */
-  dp?: number;
-}
-
-interface I_eds_list extends I_calc_min {}
+import { Invalid_argument_external } from '../../error/invalid_argument';
 
 /**
  * Calculate minimal member share
@@ -58,7 +32,7 @@ export function calc_min({ share, member, ratio, round_fn, dp }: I_calc_min): De
 /**
  * Calculate all member shares as a list
  */
-export function calc_list({ share, member, ratio, round_fn, dp }: I_eds_list): Decimal[] {
+export function cut({ share, member, ratio, round_fn, dp }: I_cut): Decimal[] {
   const min = calc_min({ share, member, ratio, round_fn: false, dp });
   let r = [min];
   let last: Decimal = min;
@@ -79,6 +53,91 @@ export function calc_list({ share, member, ratio, round_fn, dp }: I_eds_list): D
   return r.reverse();
 }
 
+/**
+ * Calculate all member shares as a list from a poll list
+ */
+export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: I_cut): Decimal[] {
+  base_vote = base_vote || 1;
+  base_share = base_share || 0;
+
+  if (poll.length < 3) {
+    throw new Invalid_argument_external('Poll members number should be greater than 2');
+  }
+
+  if (base_vote <= 0) {
+    throw new Invalid_argument_external('{base_vote} should be greater than 0');
+  }
+
+  if (base_share < 0) {
+    throw new Invalid_argument_external('{base_share} could not be negative');
+  }
+
+  if (poll.length !== opt_list.member) {
+    throw new Invalid_argument_external('Invalid {poll} length, should be equal to {member}');
+  }
+
+  poll = poll.sort((a, b) => b - a);
+
+  // members that passed base_vote
+  const sharable = poll.filter((it) => it >= base_vote);
+  // total shares of members not passed base_vote
+  const base_share_sum = (poll.length - sharable.length) * base_share;
+  // remaining shares
+  const share = opt_list.share - base_share_sum;
+  const member = sharable.length;
+  const list = cut({ ...opt_list, share, member });
+  const base_count = poll.length - sharable.length;
+  const list_base = Array(base_count).fill(base_share);
+
+  // The equity of members with the same number of votes should be equally distributed
+
+  return [...list, ...list_base];
+}
+
 export function n(value?: Decimal.Value): Decimal {
   return new Decimal(value || 0);
 }
+
+export interface I_poll_cut {
+  /**
+   * Vote count of each member
+   */
+  poll: number[];
+
+  /**
+   * Base share, even members with 0 votes will get this amount of shares
+   */
+  base_share: number;
+
+  /**
+   * Vote count, a member will receive base share if his votes is less than this value
+   */
+  base_vote: number;
+}
+
+export interface I_calc_min {
+  /**
+   * Total shares
+   */
+  share: number;
+  /**
+   * Total members to split shares
+   */
+  member: number;
+  /**
+   * How many times a member's share is greater than next member's
+   */
+  ratio: number;
+
+  /**
+   * Round function, default to: `Math.floor` pass `false` to prevent round
+   */
+  round_fn?: false | ((x: Decimal) => Decimal);
+
+  /**
+   * Decimal places to keep in no-rounding mode
+   */
+  dp?: number;
+}
+
+interface I_cut extends I_calc_min {}

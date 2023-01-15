@@ -1,6 +1,6 @@
 import Table from 'cli-table';
 import yargs, { Argv } from 'yargs';
-import { calc_list, calc_min, n } from '../lib/eds/eds';
+import { cut, calc_min, n } from '../lib/eds/eds';
 
 export const cli = yargs
   .command({
@@ -37,8 +37,8 @@ export const cli = yargs
     },
   })
   .command({
-    command: 'list <share> <member> <ratio>',
-    describe: 'Calculate minimal member share',
+    command: 'cut <share> <member> <ratio>',
+    describe: 'Calculate all member shares as a list',
     builder(argv: Argv<any>) {
       return argv
         .options({
@@ -69,7 +69,7 @@ export const cli = yargs
         });
     },
     handler({ share, member, ratio, no_rounding, dp, pretty }: any) {
-      const list = calc_list({ share, member, ratio, round_fn: no_rounding ? false : undefined, dp });
+      const list = cut({ share, member, ratio, round_fn: no_rounding ? false : undefined, dp });
       const sum = list.reduce((a, b) => a.add(b), n(0)).toDP(dp);
       const crumb = n(share).minus(sum).toDP(dp);
       if (pretty) {
