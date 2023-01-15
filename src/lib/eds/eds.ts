@@ -7,52 +7,71 @@
 import { Decimal } from 'decimal.js';
 import { uniq } from 'lodash';
 import { Invalid_argument_external } from '../../error/invalid_argument';
-import { n } from '../utility/math';
+import { n_sum } from '../utility/list';
+import { n, T_number } from '../utility/math';
+
+export const max_dp = 17;
+export const min_share = 1;
 
 /**
  * Calculate minimal member share
  */
-export function calc_min({ share, member, ratio, round_fn, dp }: I_calc_min): Decimal {
-  dp = dp || 17;
-  round_fn = round_fn ?? ((value) => value.floor());
-
+export function calc_min({ share, member, ratio, dp }: I_calc_min): Decimal {
   const n_share = n(share);
   const n_ratio = n(ratio);
-  let r = n_share.div(n(1).minus(n_ratio.pow(member)).div(n(1).minus(ratio)));
+  const r = n_share.div(n(1).minus(n_ratio.pow(member)).div(n(1).minus(ratio)));
 
-  if (round_fn) {
-    r = round_fn(r);
-    if (dp > 17) {
-      throw new Error('{dp} should not be greater than 17');
-    }
-    r.toDP(dp);
-  }
-
-  return r;
+  return to_dp(r);
 }
 
 /**
- * Calculate all member shares as a list
+ * Calculate all member shares as a list once
  */
-export function cut({ share, member, ratio, round_fn, dp }: I_cut): Decimal[] {
-  const min = calc_min({ share, member, ratio, round_fn: false, dp });
+export function cut_once({ share, member, ratio, dp }: I_cut): Decimal[] {
+  const min = calc_min({ share, member, ratio, dp });
   let r = [min];
   let last: Decimal = min;
+
   for (let i = 1; i < member; i++) {
     last = last.times(ratio);
     r.push(last);
   }
 
-  round_fn = round_fn ?? ((value) => value.floor());
-  if (round_fn) {
-    r = r.map(round_fn);
-  }
-
-  if (dp) {
-    r = r.map((it) => it.toDP(dp));
-  }
-
+  r = r.map((it) => to_dp(it, dp));
   return r.reverse();
+}
+
+/**
+ * Calculate all member shares as a list
+ */
+export function cut(opt: I_cut): Decimal[] {
+  function fn(list: Decimal[], opt: I_cut): Decimal[] {
+    const r = cut_once(opt);
+    const { share } = opt;
+    const sum = n_sum(r);
+    const crumb = n(share).minus(sum);
+    list.forEach((it, i) => (list[i] = it.add(r[i] || 0)));
+    if (crumb.greaterThan(min_share)) {
+      // try to cut crumb with fewer members
+      const fewer = crumb.div(opt.share).times(opt.member).ceil().toNumber();
+      fn(list, { ...opt, share: crumb, member: fewer });
+    }
+
+    return list;
+  }
+
+  // Add potential 1 crumb
+  const r = fn(Array(opt.member).fill(n(0)), opt);
+  return fill_final_crumb(opt.share, r);
+}
+
+function fill_final_crumb(share: T_number, list: Decimal[]): Decimal[] {
+  const crumb_final = n(share).minus(n_sum(list));
+  if (crumb_final.greaterThan(1)) {
+    throw new Error('Final crumb is greater than 1');
+  }
+  list[0] = list[0].add(crumb_final.ceil());
+  return list;
 }
 
 /**
@@ -86,7 +105,7 @@ export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: 
   // total shares of members not passed base_vote
   const base_share_sum = (poll.length - sharable.length) * base_share;
   // remaining shares
-  const share = opt_list.share - base_share_sum;
+  const share = n(opt_list.share).minus(base_share_sum);
   const member = sharable.length;
   const list = cut({ ...opt_list, share, member });
   const base_count = poll.length - sharable.length;
@@ -113,11 +132,24 @@ export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: 
 
   sharable.forEach((it, i) => {
     if (uniq_map[it].repeat) {
-      list[i] = uniq_map[it].avg.toDP(dp);
+      list[i] = to_dp(uniq_map[it].avg);
     }
   });
 
-  return [...list, ...list_base];
+  return fill_final_crumb(opt_list.share, [...list, ...list_base]);
+}
+
+function to_dp(value: Decimal, dp?: number): Decimal {
+  if (dp) {
+    if (dp > 17) {
+      throw new Error('{dp} should not be greater than 17');
+    }
+    value = value.toDP(dp);
+  } else {
+    value = value.floor();
+  }
+
+  return value;
 }
 
 export interface I_poll_cut {
@@ -141,20 +173,17 @@ export interface I_calc_min {
   /**
    * Total shares
    */
-  share: number;
+  share: T_number;
+
   /**
    * Total members to split shares
    */
   member: number;
+
   /**
    * How many times a member's share is greater than next member's
    */
-  ratio: number;
-
-  /**
-   * Round function, default to: `Math.floor` pass `false` to prevent round
-   */
-  round_fn?: false | ((x: Decimal) => Decimal);
+  ratio: T_number;
 
   /**
    * Decimal places to keep in no-rounding mode
