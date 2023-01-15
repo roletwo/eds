@@ -1,5 +1,5 @@
 export interface T_object {
-  [key: string]: any
+  [key: string]: any;
 }
 
 /**

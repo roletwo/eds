@@ -8,26 +8,27 @@ export class Invalid_argument extends E {
   eid = EID_common.invalid_argument;
   data?: T_invalid_argument_data;
 
-  constructor(message: string, solution?: string)
-  constructor(map: T_invalid_argument_map, solution?: string)
+  constructor(message: string, solution?: string);
+  constructor(map: T_invalid_argument_map, solution?: string);
   constructor(a: any, b?: any) {
     super();
 
     const ta = typeof a,
-          tb = typeof b;
+      tb = typeof b;
 
     // Simple string error.
     if (ta === 'string') {
       this.message = a;
       this.solution = b;
-    } else if (typeof a === 'object' && ( ! b || typeof b === 'string')) {
+    } else if (typeof a === 'object' && (!b || typeof b === 'string')) {
       let message = 'Invalid arguments: ';
       message += invalid_map(a);
       this.message = trim(message, ', ');
       this.solution = b;
-    } else { // Object error with more info.
-      let keys: string[]             = [],
-          reasons: T_invalid_reasons = {};
+    } else {
+      // Object error with more info.
+      const keys: string[] = [],
+        reasons: T_invalid_reasons = {};
 
       if (typeof a === 'string') {
         keys.push(a);
@@ -60,20 +61,20 @@ export class Invalid_argument_external extends Invalid_argument {
 }
 
 export interface T_invalid_reasons {
-  [key: string]: T_invalid_reason
+  [key: string]: T_invalid_reason;
 }
 
 export interface T_invalid_reason {
-  constraints: any
-  key?: string
-  value?: any
+  constraints: any;
+  key?: string;
+  value?: any;
 }
 
 export interface T_invalid_argument_data {
-  invalid_reasons: T_invalid_reasons
-  invalid_keys?: string[]
+  invalid_reasons: T_invalid_reasons;
+  invalid_keys?: string[];
 }
 
 export type T_invalid_argument_map = {
-  [argument_name: string]: any
-}
+  [argument_name: string]: any;
+};
