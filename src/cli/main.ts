@@ -71,12 +71,12 @@ export const cli = yargs
           rows: [[sum.toString(), crumb.toString()]],
         });
 
-        const head = ['Ranking', 'Shares'];
+        const head = ['Votes', 'Ranking', 'Shares'];
         if (titles.length) {
           head.unshift('Title');
         }
         const rows = list.map((it, i) => {
-          const row = [(i + 1).toString(), it.toString()];
+          const row = [poll[i], (i + 1).toString(), it.toString()];
           if (titles.length) {
             row.unshift(titles[i] ?? '-');
           }
