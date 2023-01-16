@@ -134,7 +134,7 @@ export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: 
   // The equity of members with the same number of votes should be equally distributed
   const uniq_vote = uniq(sharable);
   const uniq_map: Record<number /* votes */, { repeat: number; sum: Decimal; avg: Decimal }> = {};
-  uniq_vote.forEach((it, i) => (uniq_map[it] = { repeat: 0, sum: n(0), avg: n(0) }));
+  uniq_vote.forEach((it) => (uniq_map[it] = { repeat: 0, sum: n(0), avg: n(0) }));
 
   sharable.forEach((it, i) => {
     uniq_map[it].sum = uniq_map[it].sum.add(list[i]);
@@ -155,6 +155,13 @@ export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: 
       list[i] = to_dp(uniq_map[it].avg, dp);
     }
   });
+
+  const last_sharable_share = list[sharable.length - 1];
+  if (last_sharable_share.lessThan(base_share)) {
+    throw new Invalid_argument_external(
+      `Last ranking (1 vote) has less share (${last_sharable_share} < ${base_share}) than {base_share}, this is ridiculous`,
+    );
+  }
 
   return fill_final_crumb(opt_list.share, [...list, ...list_base]);
 }
