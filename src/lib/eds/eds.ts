@@ -166,6 +166,33 @@ export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: 
   return fill_final_crumb(opt_list.share, [...list, ...list_base]);
 }
 
+export function rank(list: Decimal[], poll: Decimal[], titles?: string[]): T_rank[] {
+  const r: T_rank[] = list.map((it, i) => ({
+    i,
+    share: it,
+    ranking: i + 1,
+    vote: poll[i],
+    title: titles?.[i],
+  }));
+
+  r.forEach((it, i) => {
+    const prev: T_rank | undefined = r[i - 1];
+    if (prev?.vote && n(it.vote).eq(prev.vote)) {
+      it.ranking = prev.ranking;
+    }
+  });
+
+  return r;
+}
+
+export interface T_rank {
+  i: number;
+  share: T_number;
+  vote: T_number;
+  ranking: number;
+  title?: string;
+}
+
 function to_dp(value: Decimal, dp?: number): Decimal {
   if (dp) {
     if (dp > 17) {

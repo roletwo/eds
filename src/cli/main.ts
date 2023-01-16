@@ -1,6 +1,6 @@
 import Table from 'cli-table';
 import yargs, { Argv } from 'yargs';
-import { calc_min, cut, poll_cut } from '../lib/eds/eds';
+import { calc_min, cut, poll_cut, rank } from '../lib/eds/eds';
 import { n } from '../lib/utility/math';
 
 export const cli = yargs
@@ -75,8 +75,12 @@ export const cli = yargs
         if (titles.length) {
           head.unshift('Title');
         }
-        const rows = list.map((it, i) => {
-          const row = [poll[i], (i + 1).toString(), it.toString()];
+
+        const list_rank = rank(list, poll, titles);
+
+        const rows = list_rank.map((it) => {
+          const i = it.i;
+          const row = [it.vote.toString(), it.ranking.toString(), it.share.toString()];
           if (titles.length) {
             row.unshift(titles[i] ?? '-');
           }
