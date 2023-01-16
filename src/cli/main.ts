@@ -22,6 +22,10 @@ export const cli = yargs
             type: 'array',
             desc: 'Vote count of each member',
           },
+          titles: {
+            type: 'array',
+            desc: 'Member names or titles, same order of {member}',
+          },
           base_vote: {
             type: 'number',
             desc: 'Vote count, a member will receive base share if his votes is less than this value',
@@ -48,7 +52,7 @@ export const cli = yargs
           type: 'number',
         });
     },
-    handler({ share, member, ratio, no_rounding, dp, pretty, poll, base_share, base_vote, verbose }: any) {
+    handler({ share, member, ratio, no_rounding, dp, pretty, poll, titles, base_share, base_vote, verbose }: any) {
       const list = poll_cut(
         { poll, base_share, base_vote },
         {
@@ -58,6 +62,7 @@ export const cli = yargs
           dp,
         },
       );
+      titles = titles || [];
       const sum = list.reduce((a, b) => a.add(b), n(0)).toDP(dp);
       const crumb = n(share).minus(sum).toDP(dp);
       if (pretty) {
@@ -66,9 +71,20 @@ export const cli = yargs
           rows: [[sum.toString(), crumb.toString()]],
         });
 
+        const head = ['Ranking', 'Shares'];
+        if (titles.length) {
+          head.unshift('Title');
+        }
+        const rows = list.map((it, i) => {
+          const row = [(i + 1).toString(), it.toString()];
+          if (titles.length) {
+            row.unshift(titles[i] ?? '-');
+          }
+          return row;
+        });
         const table_list = new Table({
-          head: ['Ranking', 'Shares'],
-          rows: list.map((it, i) => [(i + 1).toString(), it.toString()]),
+          head,
+          rows,
         });
 
         if (verbose) {
