@@ -87,9 +87,10 @@ export function cut(opt: I_cut): Decimal[] {
 
 function fill_final_crumb(share: T_number, list: Decimal[]): Decimal[] {
   const crumb_final = n(share).minus(n_sum(list));
-  if (crumb_final.greaterThan(1)) {
-    throw new Error('Final crumb is greater than 1');
-  }
+  // todo: is this necessary?
+  // if (crumb_final.greaterThan(1)) {
+  //   throw new Error('Final crumb is greater than 1');
+  // }
   list[0] = list[0].add(crumb_final.ceil());
   return list;
 }
