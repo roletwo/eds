@@ -101,7 +101,7 @@ function fill_final_crumb(share: T_number, list: Decimal[]): Decimal[] {
 export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: I_cut): Decimal[] {
   base_vote = base_vote || 1;
   base_share = base_share || 0;
-  const { dp } = opt_list;
+  const { dp, share } = opt_list;
 
   if (poll.length < 3) {
     throw new Invalid_argument_external('Poll members number should be greater than 2');
@@ -119,68 +119,94 @@ export function poll_cut({ poll, base_vote, base_share }: I_poll_cut, opt_list: 
     throw new Invalid_argument_external('Invalid {poll} length, should be equal to {member}');
   }
 
-  poll = poll.sort((a, b) => b - a);
-
-  // members that passed base_vote
-  const sharable = poll.filter((it) => it >= base_vote);
-  // total shares of members not passed base_vote
-  const base_share_sum = (poll.length - sharable.length) * base_share;
-  // remaining shares
-  const share = n(opt_list.share).minus(base_share_sum);
-  const member = sharable.length;
-  const list = cut({ ...opt_list, share, member });
-  const base_count = poll.length - sharable.length;
-  const list_base = Array(base_count).fill(base_share);
-
-  // The equity of members with the same number of votes should be equally distributed
-  const uniq_vote = uniq(sharable);
-  const uniq_map: Record<number /* votes */, { repeat: number; sum: Decimal; avg: Decimal }> = {};
-  uniq_vote.forEach((it) => (uniq_map[it] = { repeat: 0, sum: n(0), avg: n(0) }));
-
-  sharable.forEach((it, i) => {
-    uniq_map[it].sum = uniq_map[it].sum.add(list[i]);
-    if (it === sharable[i - 1]) {
-      uniq_map[it].repeat++;
+  const all_are_equal = uniq(poll).length === 1;
+  if (all_are_equal) {
+    const r = Array(poll.length);
+    if (poll[0] <= base_vote) {
+      return r.fill(base_share);
+    } else {
+      return r.fill(n(share).div(poll.length).floor());
     }
-  });
+  } else {
+    poll = poll.sort((a, b) => b - a);
 
-  for (const key in uniq_map) {
-    const item = uniq_map[key];
-    if (item.repeat) {
-      item.avg = item.sum.div(item.repeat + 1);
+    // members that passed base_vote
+    const sharable: number[] = [],
+      unsharable: number[] = [];
+    for (const it of poll) {
+      if (it >= base_vote) {
+        sharable.push(it);
+      } else {
+        unsharable.push(it);
+      }
     }
+    // total shares of members not passed base_vote
+    const base_share_sum = (poll.length - sharable.length) * base_share;
+    // remaining shares
+    const share = n(opt_list.share).minus(base_share_sum);
+    const member = sharable.length;
+    const list = cut({ ...opt_list, share, member });
+    const base_count = poll.length - sharable.length;
+    const list_base = Array(base_count).fill(base_share);
+
+    // The equity of members with the same number of votes should be equally distributed
+    const uniq_vote = uniq(sharable);
+    const uniq_map: Record<number /* votes */, { repeat: number; sum: Decimal; avg: Decimal }> = {};
+    uniq_vote.forEach((it) => (uniq_map[it] = { repeat: 0, sum: n(0), avg: n(0) }));
+
+    sharable.forEach((it, i) => {
+      uniq_map[it].sum = uniq_map[it].sum.add(list[i]);
+      if (it === sharable[i - 1]) {
+        uniq_map[it].repeat++;
+      }
+    });
+
+    for (const key in uniq_map) {
+      const item = uniq_map[key];
+      if (item.repeat) {
+        item.avg = item.sum.div(item.repeat + 1);
+      }
+    }
+
+    sharable.forEach((it, i) => {
+      if (uniq_map[it].repeat) {
+        list[i] = to_dp(uniq_map[it].avg, dp);
+      }
+    });
+
+    const last_sharable_share = list[sharable.length - 1];
+    if (last_sharable_share.lessThan(base_share)) {
+      throw new Invalid_argument_external(
+        `Last ranking (1 vote) has less share (${last_sharable_share} < ${base_share}) than {base_share}, this is ridiculous`,
+      );
+    }
+
+    return fill_final_crumb(opt_list.share, [...list, ...list_base]);
   }
-
-  sharable.forEach((it, i) => {
-    if (uniq_map[it].repeat) {
-      list[i] = to_dp(uniq_map[it].avg, dp);
-    }
-  });
-
-  const last_sharable_share = list[sharable.length - 1];
-  if (last_sharable_share.lessThan(base_share)) {
-    throw new Invalid_argument_external(
-      `Last ranking (1 vote) has less share (${last_sharable_share} < ${base_share}) than {base_share}, this is ridiculous`,
-    );
-  }
-
-  return fill_final_crumb(opt_list.share, [...list, ...list_base]);
 }
 
-export function rank(list: Decimal[], poll: Decimal[], titles?: string[]): T_rank[] {
-  const r: T_rank[] = list.map((it, i) => ({
-    i,
-    share: it,
-    ranking: i + 1,
-    vote: poll[i],
-    title: titles?.[i],
-  }));
+export function rank(list: Decimal[], poll: Decimal[], titles?: string[], base_vote?: number): T_rank[] {
+  const r: T_rank[] = list.map((it, i) => {
+    const vote = poll[i] ?? 0;
+    let ranking = i + 1;
+    if (typeof base_vote === 'number' && n(vote).lte(base_vote)) {
+      ranking = list.length;
+    }
+    return {
+      i,
+      ranking,
+      vote,
+      share: it,
+      title: titles?.[i],
+    };
+  });
 
   r.forEach((it, i) => {
     const prev: T_rank | undefined = r[i - 1];
-    if (prev?.vote && n(it.vote).eq(prev.vote)) {
-      it.ranking = prev.ranking;
+    if (!prev || !n(it.vote).eq(prev.vote)) {
+      return;
     }
+    it.ranking = prev.ranking;
   });
 
   return r;

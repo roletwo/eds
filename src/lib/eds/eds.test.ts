@@ -1,3 +1,4 @@
+import { uniq } from 'lodash';
 import { n_sum } from '../utility/list';
 import { n } from '../utility/math';
 import { calc_min, cut, cut_once, poll_cut } from './eds';
@@ -93,6 +94,50 @@ describe('poll_cut', () => {
     expect(r.length).toBe(poll.length);
     const diff = n(share).minus(n_sum(r));
     expect(diff.eq(0)).toBeTruthy();
+  });
+
+  it('all 0 vote', async () => {
+    const poll = [0, 0, 0, 0, 0];
+    const share = 10000;
+    const base_share = 10;
+    const r = poll_cut(
+      {
+        poll,
+        base_share,
+        base_vote: 1,
+      },
+      {
+        share,
+        member: 5,
+        ratio: 1.1,
+      },
+    );
+
+    expect(r.length).toBe(poll.length);
+    expect(uniq(r).length).toBe(1);
+    expect(r[0]).toBe(base_share);
+  });
+
+  it('all same vote', async () => {
+    const poll = [10, 10, 10, 10, 10];
+    const share = 10000;
+    const base_share = 10;
+    const r = poll_cut(
+      {
+        poll,
+        base_share,
+        base_vote: 1,
+      },
+      {
+        share,
+        member: 5,
+        ratio: 1.1,
+      },
+    );
+
+    expect(r.length).toBe(poll.length);
+    expect(uniq(r).length).toBe(1);
+    expect(r[0].toNumber()).toBe(share / r.length);
   });
 
   it('with vote duplications', async () => {

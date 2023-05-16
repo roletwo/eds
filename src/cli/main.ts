@@ -76,7 +76,7 @@ export const cli = yargs
           head.unshift('Title');
         }
 
-        const list_rank = rank(list, poll, titles);
+        const list_rank = rank(list, poll, titles, base_vote);
 
         const rows = list_rank.map((it) => {
           const i = it.i;
